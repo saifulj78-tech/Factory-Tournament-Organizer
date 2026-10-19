@@ -1,0 +1,4 @@
+- [Spectator group layout](spectator-group-layout.md) — exactly three groups appear side by side; larger tournaments retain two rows per column.
+- [Team deletion and match history](team-deletion-history.md) — preserve fixtures when a team is removed; never silently erase scores to make deletion succeed.
+- [Breakout group selection](breakout-group-selection.md) — selected source groups route existing qualifiers; choosing a group must not qualify every team.
+- [Top 6 playoff](top-six-playoff.md) — available in standard and breakout knockouts; six qualifiers per bracket, with semifinal byes for seeds 1 and 2.

@@ -1,0 +1,1984 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Tournament Manager API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: tournaments
+    description: Tournament management
+  - name: teams
+    description: Team management
+  - name: matches
+    description: Match management
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /tournaments:
+    get:
+      operationId: listTournaments
+      tags: [tournaments]
+      summary: List all tournaments
+      responses:
+        "200":
+          description: List of tournaments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tournament"
+    post:
+      operationId: createTournament
+      tags: [tournaments]
+      summary: Create a new tournament
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TournamentInput"
+      responses:
+        "201":
+          description: Created tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+
+  /tournaments/{id}:
+    get:
+      operationId: getTournamentById
+      tags: [tournaments]
+      summary: Get a tournament by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+    put:
+      operationId: updateTournamentById
+      tags: [tournaments]
+      summary: Update a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TournamentInput"
+      responses:
+        "200":
+          description: Updated tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+    delete:
+      operationId: deleteTournamentById
+      tags: [tournaments]
+      summary: Delete a tournament and all its data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /tournaments/{id}/generate:
+    post:
+      operationId: generateTournament
+      tags: [tournaments]
+      summary: Generate groups, teams, and matches for a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tournament with freshly generated data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+
+  /tournaments/{id}/regenerate-matches:
+    post:
+      operationId: regenerateTournamentMatches
+      tags: [tournaments]
+      summary: Delete and regenerate all matches without touching groups or teams
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tournament after matches have been regenerated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+
+  /tournaments/{id}/complete:
+    post:
+      operationId: completeTournament
+      tags: [tournaments]
+      summary: Mark a tournament as completed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Completed tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+
+  /tournaments/{id}/co-organizers:
+    get:
+      operationId: listTournamentCoOrganizers
+      tags: [tournaments]
+      summary: List co-organizers for a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of co-organizers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TournamentCoOrganizer"
+    post:
+      operationId: addTournamentCoOrganizer
+      tags: [tournaments]
+      summary: Add a co-organizer to a tournament by email (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCoOrganizerInput"
+      responses:
+        "201":
+          description: Added co-organizer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TournamentCoOrganizer"
+
+  /tournaments/{id}/co-organizers/{userId}:
+    delete:
+      operationId: removeTournamentCoOrganizer
+      tags: [tournaments]
+      summary: Remove a co-organizer from a tournament (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Removed
+
+  /tournaments/{id}/reopen:
+    post:
+      operationId: reopenTournament
+      tags: [tournaments]
+      summary: Reopen a completed tournament (set status back to active)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reopened tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+
+  /tournaments/{id}/groups:
+    get:
+      operationId: listTournamentGroups
+      tags: [tournaments]
+      summary: List groups for a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+
+  /tournaments/{id}/teams:
+    get:
+      operationId: listTournamentTeams
+      tags: [tournaments]
+      summary: List all teams for a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Team"
+    post:
+      operationId: createTournamentTeam
+      tags: [tournaments]
+      summary: Create a team in a tournament group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamInput"
+      responses:
+        "201":
+          description: Created team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+
+  /tournaments/{id}/matches:
+    get:
+      operationId: listTournamentMatches
+      tags: [tournaments]
+      summary: List all matches for a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+    post:
+      operationId: createTournamentMatch
+      tags: [tournaments]
+      summary: Add a fixture manually to a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchInput"
+      responses:
+        "201":
+          description: Created match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+
+  /groups/{id}:
+    put:
+      operationId: updateGroupName
+      tags: [tournaments]
+      summary: Rename a tournament group
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupNameInput"
+      responses:
+        "200":
+          description: Renamed group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+  /tournaments/{id}/breakout-knockouts:
+    get:
+      operationId: getBreakoutKnockouts
+      tags: [tournaments]
+      summary: Get both independent knockout brackets and winners
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "200":
+          description: Breakout knockout state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakoutState"
+    put:
+      operationId: configureBreakoutKnockouts
+      tags: [tournaments]
+      summary: Enable two independent brackets and select the groups for each
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BreakoutConfigurationInput"
+      responses:
+        "200":
+          description: Saved configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakoutState"
+  /tournaments/{id}/breakout-knockouts/generate:
+    post:
+      operationId: generateBreakoutKnockouts
+      tags: [tournaments]
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BreakoutGenerationInput"
+      responses:
+        "201":
+          description: Both brackets generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakoutState"
+  /tournaments/{id}/breakout-knockouts/matches:
+    delete:
+      operationId: resetBreakoutKnockouts
+      tags: [tournaments]
+      summary: Remove both brackets and their scores, keeping group selections
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "200":
+          description: Reset state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakoutState"
+  /tournaments/{id}/breakout-knockouts/{bracketId}/matches/{matchId}:
+    put:
+      operationId: updateBreakoutKnockoutScore
+      tags: [tournaments]
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - name: bracketId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BreakoutScoreInput"
+      responses:
+        "200":
+          description: Updated brackets and winners
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreakoutState"
+  /tournaments/{id}/generate-knockout:
+    post:
+      operationId: generateKnockoutBracket
+      tags: [tournaments]
+      summary: Generate the knockout bracket from group stage standings
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateKnockoutBody"
+      responses:
+        "201":
+          description: Generated knockout matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KnockoutMatch"
+
+  /tournaments/{id}/wildcard-playoff:
+    get:
+      operationId: getWildcardPlayoff
+      tags: [tournaments]
+      summary: Get third-place wildcard playoff matches and standings
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "200":
+          description: Wildcard playoff state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WildcardPlayoff"
+    post:
+      operationId: startWildcardPlayoff
+      tags: [tournaments]
+      summary: Start the three-team third-place wildcard playoff
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "201":
+          description: Created playoff schedule and standings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WildcardPlayoff"
+    delete:
+      operationId: resetWildcardPlayoff
+      tags: [tournaments]
+      summary: Reset the wildcard playoff before knockout generation
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "204":
+          description: Playoff reset
+
+  /tournaments/{id}/wildcard-playoff/{matchId}:
+    put:
+      operationId: updateWildcardPlayoffMatch
+      tags: [tournaments]
+      summary: Record or correct a wildcard playoff match score
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WildcardPlayoffScoreInput"
+      responses:
+        "200":
+          description: Updated playoff state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WildcardPlayoff"
+
+  /tournaments/{id}/knockout-bracket:
+    delete:
+      operationId: deleteKnockoutBracket
+      tags: [tournaments]
+      summary: Delete an unscored knockout bracket so it can be re-seeded
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Knockout bracket deleted
+
+  /tournaments/{id}/ladder:
+    get:
+      operationId: listLadderState
+      tags: [tournaments]
+      summary: Get current individual ladder games, queues, and history (public)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Current individual ladder state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LadderState"
+
+  /tournaments/{id}/ladder/participants:
+    put:
+      operationId: setLadderParticipants
+      tags: [tournaments]
+      summary: Replace individual ladder participants before starting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LadderParticipantsInput"
+      responses:
+        "200":
+          description: Current individual ladder state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LadderState"
+
+  /tournaments/{id}/ladder/participants/{participantId}/attendance:
+    patch:
+      operationId: updateLadderParticipantAttendance
+      tags: [tournaments]
+      summary: Mark a ladder player as absent or arrived
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: participantId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LadderParticipantAttendanceUpdate"
+      responses:
+        "200":
+          description: Updated individual ladder state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LadderState"
+
+  /tournaments/{id}/ladder/start:
+    post:
+      operationId: startLadder
+      tags: [tournaments]
+      summary: Create the first batch of individual ladder games
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Started individual ladder state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LadderState"
+
+  /tournaments/{id}/ladder/reset:
+    post:
+      operationId: resetLadder
+      tags: [tournaments]
+      summary: Clear individual ladder games and queues while keeping players
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reset individual ladder state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LadderState"
+
+  /ladder-games/{id}:
+    put:
+      operationId: updateLadderGame
+      tags: [matches]
+      summary: Enter a score and progress an individual ladder batch when all courts finish
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LadderScoreInput"
+      responses:
+        "200":
+          description: Current individual ladder state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LadderState"
+
+  /tournaments/{id}/knockout-matches:
+    get:
+      operationId: listKnockoutMatches
+      tags: [tournaments]
+      summary: List knockout bracket matches for a tournament (public)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Knockout bracket matches ordered by round and match number
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KnockoutMatch"
+
+  /knockout-matches/{id}:
+    post:
+      operationId: startKnockoutMatch
+      tags: [matches]
+      summary: Start a knockout match
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Started knockout match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnockoutMatch"
+    put:
+      operationId: updateKnockoutMatch
+      tags: [matches]
+      summary: Enter score for a knockout match
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KnockoutScoreInput"
+      responses:
+        "200":
+          description: Updated knockout match with winner advanced to next round
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnockoutMatch"
+
+  /tournaments/{id}/standings:
+    get:
+      operationId: listTournamentStandings
+      tags: [tournaments]
+      summary: Get standings for a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Standings per group
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Standing"
+
+  /tournaments/{id}/randomize-teams:
+    post:
+      operationId: randomizeTeams
+      tags: [tournaments]
+      summary: Bulk-assign a list of team names randomly across groups, replacing existing teams
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RandomizeTeamsInput"
+      responses:
+        "200":
+          description: Updated list of teams after randomization
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Team"
+        "400":
+          description: Bad request (no names, names too long, etc.)
+        "404":
+          description: Tournament not found
+        "409":
+          description: No groups yet — generate the tournament first
+
+  /tournaments/{id}/team-event:
+    get:
+      operationId: getTeamEventState
+      tags: [tournaments]
+      summary: Get the public team event state
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "200":
+          description: Team event state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamEventState"
+    put:
+      operationId: updateTeamEventConfig
+      tags: [tournaments]
+      summary: Update team event configuration and rubber templates
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamEventConfigInput"
+      responses:
+        "200":
+          description: Updated team event state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamEventState"
+
+  /teams/{id}/roster:
+    put:
+      operationId: replaceTeamEventRoster
+      tags: [teams]
+      summary: Replace a team event roster
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamEventRosterInput"
+      responses:
+        "200":
+          description: Updated roster
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TeamEventPlayer" }
+
+  /team-event-rubbers/{id}/lineup:
+    put:
+      operationId: saveTeamEventRubberLineup
+      tags: [matches]
+      summary: Save the player lineup for a team event rubber
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamEventLineupInput"
+      responses:
+        "200":
+          description: Updated rubber
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamEventRubber" }
+
+  /team-event-rubbers/{id}/score:
+    put:
+      operationId: scoreTeamEventRubber
+      tags: [matches]
+      summary: Score a team event rubber
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamEventRubberScoreInput"
+      responses:
+        "200":
+          description: Updated rubber
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamEventRubber" }
+    delete:
+      operationId: resetTeamEventRubberScore
+      tags: [matches]
+      summary: Clear a team event rubber score and mark it unplayed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Reset rubber
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamEventRubber" }
+
+  /tournaments/{id}/team-event/crossover:
+    post:
+      operationId: generateTeamEventCrossover
+      tags: [tournaments]
+      summary: Generate A1-B2 and B1-A2 crossover semifinals and final
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TeamEventCrossoverInput" }
+      responses:
+        "201":
+          description: Crossover bracket
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/KnockoutMatch" }
+
+  /knockout-matches/{id}/dreambreaker/lineup:
+    put:
+      operationId: saveTeamEventDreambreakerLineup
+      tags: [matches]
+      summary: Save one team's ordered Dreambreaker rotation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TeamEventDreambreakerLineupInput" }
+      responses:
+        "200":
+          description: Updated Dreambreaker
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamEventDreambreaker" }
+
+  /knockout-matches/{id}/dreambreaker/score:
+    put:
+      operationId: scoreTeamEventDreambreaker
+      tags: [matches]
+      summary: Score a tied knockout Dreambreaker
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TeamEventDreambreakerScoreInput" }
+      responses:
+        "200":
+          description: Updated Dreambreaker
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamEventDreambreaker" }
+
+  /teams/{id}:
+    put:
+      operationId: updateTeam
+      tags: [teams]
+      summary: Update a team
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamInput"
+      responses:
+        "200":
+          description: Updated team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+    delete:
+      operationId: deleteTeam
+      tags: [teams]
+      summary: Delete a team
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /teams/{id}/replace:
+    post:
+      operationId: replaceAndDeleteTeam
+      tags: [teams]
+      summary: Replace a team in fixtures, reset affected scores, and delete it
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamReplacementInput"
+      responses:
+        "200":
+          description: Replacement summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamReplacementResult"
+
+  /matches/{id}:
+    post:
+      operationId: startMatch
+      tags: [matches]
+      summary: Start a match
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Started match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+    put:
+      operationId: updateMatch
+      tags: [matches]
+      summary: Update a match (enter score)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchUpdate"
+      responses:
+        "200":
+          description: Updated match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+    delete:
+      operationId: deleteMatch
+      tags: [matches]
+      summary: Delete a match
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+components:
+  parameters:
+    TournamentId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Tournament:
+      type: object
+      required: [id, name, groupCount, teamsPerGroup, courtCount, status, createdAt, format, wildcardRankingMethod, wildcardSelectionMethod]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        groupCount:
+          type: integer
+        teamsPerGroup:
+          type: integer
+        courtCount:
+          type: integer
+        status:
+          type: string
+        createdAt:
+          type: string
+        format:
+          type: string
+          enum: [round_robin, group_knockout, individual_ladder, americano, team_event]
+        qualifiersPerGroup:
+          type: ["integer", "null"]
+        wildcardQualifiers:
+          type: integer
+          minimum: 0
+        wildcardRankingMethod:
+          type: string
+          enum: [points, ppg]
+          default: points
+        wildcardSelectionMethod:
+          type: string
+          enum: [ranking, round_robin]
+          default: ranking
+        knockoutFormat:
+          type: string
+          enum: [single, double, top6]
+          description: "single | double | top6 — Top 6 gives seeds 1 and 2 semifinal byes"
+        thirdPlacePlayoffEnabled:
+          type: boolean
+        tiebreakerOrder:
+          type: string
+          description: "Comma-separated tiebreaker priority after points: e.g. goal_difference,goals_for,goals_against,head_to_head"
+        createdBy:
+          type: ["string", "null"]
+          description: "Clerk user ID of the tournament owner"
+
+    TournamentInput:
+      type: object
+      required: [name, groupCount, teamsPerGroup, courtCount]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        groupCount:
+          type: integer
+          minimum: 1
+        teamsPerGroup:
+          type: integer
+          minimum: 2
+        courtCount:
+          type: integer
+          minimum: 1
+        format:
+          type: string
+          enum: [round_robin, group_knockout, individual_ladder, americano, team_event]
+        qualifiersPerGroup:
+          type: ["integer", "null"]
+        wildcardQualifiers:
+          type: integer
+          minimum: 0
+        wildcardRankingMethod:
+          type: string
+          enum: [points, ppg]
+        wildcardSelectionMethod:
+          type: string
+          enum: [ranking, round_robin]
+        knockoutFormat:
+          type: string
+          enum: [single, double, top6]
+          description: "single | double | top6 — Top 6 requires exactly six qualifiers per bracket"
+        thirdPlacePlayoffEnabled:
+          type: boolean
+        tiebreakerOrder:
+          type: string
+          description: "Comma-separated tiebreaker priority after points: e.g. goal_difference,goals_for,goals_against,head_to_head"
+
+    TournamentCoOrganizer:
+      type: object
+      required: [id, tournamentId, userId, email, addedAt]
+      properties:
+        id:
+          type: integer
+        tournamentId:
+          type: integer
+        userId:
+          type: string
+        email:
+          type: string
+        addedAt:
+          type: string
+
+    AddCoOrganizerInput:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    RandomizeTeamsInput:
+      type: object
+      required: [teamNames]
+      properties:
+        teamNames:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          minItems: 2
+
+    GroupNameInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+    BreakoutConfigurationInput:
+      type: object
+      required: [enabled, brackets]
+      properties:
+        enabled: { type: boolean }
+        brackets:
+          type: array
+          maxItems: 2
+          items:
+            $ref: "#/components/schemas/BreakoutConfig"
+    BreakoutScoreInput:
+      type: object
+      required: [homeScore, awayScore]
+      properties:
+        homeScore: { type: integer, minimum: 0, maximum: 2147483647, nullable: true }
+        awayScore: { type: integer, minimum: 0, maximum: 2147483647, nullable: true }
+    BreakoutConfig:
+      type: object
+      required: [name, groupIds]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        groupIds:
+          type: array
+          minItems: 1
+          items:
+            type: integer
+    BreakoutMatch:
+      type: object
+      required: [id, round, matchNumber, homeTeamId, awayTeamId, homeTeamName, awayTeamName, homeScore, awayScore, winnerId, played, ready, bye]
+      properties:
+        id: { type: integer }
+        round: { type: integer }
+        matchNumber: { type: integer }
+        homeTeamId: { type: integer, nullable: true }
+        awayTeamId: { type: integer, nullable: true }
+        homeTeamName: { type: string, nullable: true }
+        awayTeamName: { type: string, nullable: true }
+        homeScore: { type: integer, nullable: true }
+        awayScore: { type: integer, nullable: true }
+        winnerId: { type: integer, nullable: true }
+        played: { type: boolean }
+        ready: { type: boolean }
+        bye: { type: boolean }
+    BreakoutBracket:
+      type: object
+      required: [id, name, groupIds, qualifiers, matches, winnerTeamId, winnerTeamName]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        groupIds:
+          type: array
+          items: { type: integer }
+        qualifiers:
+          type: array
+          items:
+            $ref: "#/components/schemas/BreakoutQualifier"
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/BreakoutMatch"
+        winnerTeamId: { type: integer, nullable: true }
+        winnerTeamName: { type: string, nullable: true }
+    BreakoutState:
+      type: object
+      required: [enabled, brackets, qualificationReady, qualificationMessage, knockoutFormat]
+      properties:
+        enabled: { type: boolean }
+        knockoutFormat:
+          type: string
+          enum: [single, top6]
+        qualificationReady: { type: boolean }
+        qualificationMessage: { type: ["string", "null"] }
+        brackets:
+          type: array
+          items:
+            $ref: "#/components/schemas/BreakoutBracket"
+    BreakoutQualifier:
+      type: object
+      required: [teamId, teamName, groupId, position]
+      properties:
+        teamId: { type: integer }
+        teamName: { type: string }
+        groupId: { type: integer }
+        position: { type: integer, description: "Zero-based finishing position in the source group" }
+    BreakoutGenerationInput:
+      type: object
+      properties:
+        brackets:
+          type: array
+          minItems: 2
+          maxItems: 2
+          description: "Optional explicit qualifier selections in seed order, matching the existing manual override."
+          items:
+            $ref: "#/components/schemas/BreakoutSeedSelection"
+    BreakoutSeedSelection:
+      type: object
+      required: [bracketId, qualifierTeamIds]
+      properties:
+        bracketId: { type: integer }
+        qualifierTeamIds:
+          type: array
+          minItems: 2
+          maxItems: 64
+          items: { type: integer }
+    Group:
+      type: object
+      required: [id, name, groupNumber, tournamentId]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        groupNumber:
+          type: integer
+        tournamentId:
+          type: integer
+
+    Team:
+      type: object
+      required: [id, name, groupId]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        groupId:
+          type: integer
+
+    TeamInput:
+      type: object
+      required: [name, groupId]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        groupId:
+          type: integer
+
+    TeamReplacementInput:
+      type: object
+      required: [replacementTeamId]
+      properties:
+        replacementTeamId:
+          type: integer
+
+    TeamReplacementResult:
+      type: object
+      required: [groupFixturesChanged, knockoutFixturesChanged, scoresCleared]
+      properties:
+        groupFixturesChanged:
+          type: integer
+        knockoutFixturesChanged:
+          type: integer
+        scoresCleared:
+          type: integer
+
+    Match:
+      type: object
+      required: [id, groupId, homeTeamId, awayTeamId, played, roundNumber]
+      properties:
+        id:
+          type: integer
+        groupId:
+          type: integer
+        homeTeamId:
+          type: integer
+        awayTeamId:
+          type: integer
+        homeScore:
+          type: ["integer", "null"]
+        awayScore:
+          type: ["integer", "null"]
+        played:
+          type: boolean
+        startedAt:
+          type: ["string", "null"]
+          format: date-time
+        roundNumber:
+          type: integer
+        courtNumber:
+          type: ["integer", "null"]
+        homeTeamName:
+          type: ["string", "null"]
+        awayTeamName:
+          type: ["string", "null"]
+
+    MatchInput:
+      type: object
+      required: [groupId, homeTeamId, awayTeamId, roundNumber]
+      properties:
+        groupId:
+          type: integer
+        homeTeamId:
+          type: integer
+        awayTeamId:
+          type: integer
+        roundNumber:
+          type: integer
+          minimum: 1
+        courtNumber:
+          type: integer
+
+    MatchUpdate:
+      type: object
+      properties:
+        homeScore:
+          type: ["integer", "null"]
+        awayScore:
+          type: ["integer", "null"]
+        played:
+          type: boolean
+
+    KnockoutMatch:
+      type: object
+      required: [id, tournamentId, round, matchNumber, played]
+      properties:
+        id:
+          type: integer
+        tournamentId:
+          type: integer
+        round:
+          type: string
+          description: "Single-elim: r32|r16|quarter|semi|final. Double-elim WB: w1|w2|…. LB: l1|l2|…. Grand Final: grand_final. Reset match: grand_final_reset"
+        matchNumber:
+          type: integer
+        bracket:
+          type: ["string", "null"]
+          description: "winner | loser | grand_final | null (single-elim legacy). grand_final_reset shares bracket=grand_final"
+        homeTeamId:
+          type: ["integer", "null"]
+        awayTeamId:
+          type: ["integer", "null"]
+        homeTeamName:
+          type: ["string", "null"]
+        awayTeamName:
+          type: ["string", "null"]
+        homeScore:
+          type: ["integer", "null"]
+        awayScore:
+          type: ["integer", "null"]
+        played:
+          type: boolean
+        startedAt:
+          type: ["string", "null"]
+          format: date-time
+        winnerId:
+          type: ["integer", "null"]
+        winnerName:
+          type: ["string", "null"]
+
+    KnockoutScoreInput:
+      type: object
+      required: [homeScore, awayScore]
+      properties:
+        homeScore:
+          type: integer
+          minimum: 0
+        awayScore:
+          type: integer
+          minimum: 0
+
+    GenerateKnockoutBody:
+      type: object
+      properties:
+        qualifierTeamIds:
+          type: array
+          items:
+            type: integer
+          description: Optional explicit list of team IDs to seed into the bracket. When provided, the all-matches-played requirement is bypassed.
+        seeds:
+          type: array
+          items:
+            type: integer
+            nullable: true
+          description: >
+            Fully manual seeding. In Top 6 mode, send exactly six distinct team
+            IDs in ranked seed order; semifinal byes are assigned automatically.
+            Other modes require a power-of-two length (2–32), with each entry
+            either a team ID or null (bye — the matched team auto-advances).
+            When provided, qualifierTeamIds is ignored and all-matches-played
+            requirement is bypassed.
+
+    WildcardPlayoffScoreInput:
+      type: object
+      required: [homeScore, awayScore]
+      properties:
+        homeScore:
+          type: integer
+          minimum: 0
+        awayScore:
+          type: integer
+          minimum: 0
+
+    WildcardPlayoffMatch:
+      type: object
+      required: [id, tournamentId, gameNumber, homeTeamId, awayTeamId, homeTeamName, awayTeamName, homeScore, awayScore, played]
+      properties:
+        id: { type: integer }
+        tournamentId: { type: integer }
+        gameNumber: { type: integer, minimum: 1, maximum: 3 }
+        homeTeamId: { type: integer }
+        awayTeamId: { type: integer }
+        homeTeamName: { type: string }
+        awayTeamName: { type: string }
+        homeScore: { type: ["integer", "null"] }
+        awayScore: { type: ["integer", "null"] }
+        played: { type: boolean }
+
+    WildcardPlayoffStanding:
+      type: object
+      required: [teamId, teamName, played, wins, points, goalsFor, goalsAgainst, goalDifference]
+      properties:
+        teamId: { type: integer }
+        teamName: { type: string }
+        played: { type: integer }
+        wins: { type: integer }
+        points: { type: integer }
+        goalsFor: { type: integer }
+        goalsAgainst: { type: integer }
+        goalDifference: { type: integer }
+
+    WildcardPlayoff:
+      type: object
+      required: [matches, standings, qualifiedTeamIds, tieAtCutoff]
+      properties:
+        matches:
+          type: array
+          items: { $ref: "#/components/schemas/WildcardPlayoffMatch" }
+        standings:
+          type: array
+          items: { $ref: "#/components/schemas/WildcardPlayoffStanding" }
+        qualifiedTeamIds:
+          type: ["array", "null"]
+          items: { type: integer }
+          description: Two playoff leaders when all games are scored and no statistical tie crosses the qualification cutoff; otherwise null.
+        tieAtCutoff:
+          type: boolean
+
+    LadderParticipant:
+      type: object
+      required: [id, tournamentId, seed, name, isHere]
+      properties:
+        id:
+          type: integer
+        tournamentId:
+          type: integer
+        seed:
+          type: integer
+          minimum: 1
+          description: Stable starting seed; 1 is the top seed.
+        name:
+          type: string
+        isHere:
+          type: boolean
+          description: Whether the player is currently available for ladder rotation.
+
+    LadderTeam:
+      type: object
+      required: [players]
+      properties:
+        players:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            $ref: "#/components/schemas/LadderParticipant"
+
+    LadderGame:
+      type: object
+      required: [id, tournamentId, batchNumber, courtNumber, homeTeam, awayTeam, played]
+      properties:
+        id:
+          type: integer
+        tournamentId:
+          type: integer
+        batchNumber:
+          type: integer
+        courtNumber:
+          type: integer
+        homeTeam:
+          $ref: "#/components/schemas/LadderTeam"
+        awayTeam:
+          $ref: "#/components/schemas/LadderTeam"
+        homeScore:
+          type: ["integer", "null"]
+        awayScore:
+          type: ["integer", "null"]
+        played:
+          type: boolean
+        winnerMovement:
+          type: ["string", "null"]
+          description: "stay | up"
+        loserMovement:
+          type: ["string", "null"]
+          description: "stay | down"
+
+    LadderCourt:
+      type: object
+      required: [courtNumber, waitingPlayers]
+      properties:
+        courtNumber:
+          type: integer
+        activeGame:
+          type: ["object", "null"]
+          allOf:
+            - $ref: "#/components/schemas/LadderGame"
+        waitingPlayers:
+          type: array
+          items:
+            $ref: "#/components/schemas/LadderParticipant"
+
+    LadderState:
+      type: object
+      required: [tournamentId, courtCount, started, batchNumber, participants, standings, courts, history]
+      properties:
+        tournamentId:
+          type: integer
+        courtCount:
+          type: integer
+        started:
+          type: boolean
+        batchNumber:
+          type: integer
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/LadderParticipant"
+        standings:
+          type: array
+          items:
+            $ref: "#/components/schemas/LadderStanding"
+        courts:
+          type: array
+          items:
+            $ref: "#/components/schemas/LadderCourt"
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/LadderGame"
+
+    LadderParticipantsInput:
+      type: object
+      required: [names]
+      properties:
+        names:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+            maxLength: 80
+
+    LadderParticipantAttendanceUpdate:
+      type: object
+      required: [isHere]
+      properties:
+        isHere:
+          type: boolean
+
+    LadderScoreInput:
+      type: object
+      required: [homePlayerOneId, homePlayerTwoId, awayPlayerOneId, awayPlayerTwoId, homeScore, awayScore]
+      properties:
+        homePlayerOneId:
+          type: integer
+          minimum: 1
+        homePlayerTwoId:
+          type: integer
+          minimum: 1
+        awayPlayerOneId:
+          type: integer
+          minimum: 1
+        awayPlayerTwoId:
+          type: integer
+          minimum: 1
+        homeScore:
+          type: integer
+          minimum: 0
+        awayScore:
+          type: integer
+          minimum: 0
+
+    LadderStanding:
+      type: object
+      required: [rank, player, points, wins, losses, gamesPlayed, currentWinStreak]
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+        player:
+          $ref: "#/components/schemas/LadderParticipant"
+        points:
+          type: integer
+          minimum: 0
+        wins:
+          type: integer
+          minimum: 0
+        losses:
+          type: integer
+          minimum: 0
+        gamesPlayed:
+          type: integer
+          minimum: 0
+        currentWinStreak:
+          type: integer
+          minimum: 0
+
+    Standing:
+      type: object
+      required: [groupId, groupName, teamId, teamName, played, wins, draws, losses, goalsFor, goalsAgainst, points]
+      properties:
+        groupId:
+          type: integer
+        groupName:
+          type: string
+        teamId:
+          type: integer
+        teamName:
+          type: string
+        played:
+          type: integer
+        wins:
+          type: integer
+        draws:
+          type: integer
+        losses:
+          type: integer
+        goalsFor:
+          type: integer
+        goalsAgainst:
+          type: integer
+        points:
+          type: integer
+
+    TeamEventPlayer:
+      type: object
+      required: [id, teamId, name, gender]
+      properties:
+        id: { type: integer }
+        teamId: { type: integer }
+        name: { type: string }
+        gender: { type: string, enum: [male, female] }
+    TeamEventRubber:
+      type: object
+      required: [id, order, matchType, targetPoints, bestOf, homePlayerIds, awayPlayerIds, played]
+      properties:
+        id: { type: integer }
+        groupMatchId: { type: [integer, "null"] }
+        knockoutMatchId: { type: [integer, "null"] }
+        order: { type: integer }
+        matchType: { type: string, enum: [mens_singles, womens_singles, mens_doubles, womens_doubles, mixed_doubles] }
+        targetPoints: { type: integer, enum: [15, 21] }
+        bestOf: { type: integer, enum: [1, 3] }
+        disallowSameMaleFromPreviousMixed: { type: boolean }
+        homePlayerIds: { type: array, items: { type: integer } }
+        awayPlayerIds: { type: array, items: { type: integer } }
+        homeScore: { type: [integer, "null"] }
+        awayScore: { type: [integer, "null"] }
+        games:
+          type: array
+          items: { $ref: "#/components/schemas/TeamEventGameScore" }
+        played: { type: boolean }
+    TeamEventTemplateInput:
+      type: object
+      required: [stage, order, matchType, targetPoints, bestOf]
+      properties:
+        stage: { type: string, enum: [group, knockout] }
+        order: { type: integer, minimum: 1 }
+        matchType: { type: string, enum: [mens_singles, womens_singles, mens_doubles, womens_doubles, mixed_doubles] }
+        targetPoints: { type: integer, enum: [15, 21] }
+        bestOf: { type: integer, enum: [1, 3] }
+        disallowSameMaleFromPreviousMixed: { type: boolean }
+    TeamEventConfigInput:
+      type: object
+      required: [minMen, minWomen, dreambreakerEnabled, templates]
+      properties:
+        minMen: { type: integer, minimum: 0 }
+        minWomen: { type: integer, minimum: 0 }
+        dreambreakerEnabled: { type: boolean }
+        templates:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/TeamEventTemplateInput" }
+    TeamEventRosterInput:
+      type: object
+      required: [players]
+      properties:
+        players:
+          type: array
+          items:
+            type: object
+            required: [name, gender]
+            properties:
+              name: { type: string, minLength: 1 }
+              gender: { type: string, enum: [male, female] }
+    TeamEventLineupInput:
+      type: object
+      required: [homePlayerIds, awayPlayerIds]
+      properties:
+        homePlayerIds: { type: array, items: { type: integer } }
+        awayPlayerIds: { type: array, items: { type: integer } }
+    TeamEventRubberScoreInput:
+      type: object
+      required: [games]
+      properties:
+        games:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items: { $ref: "#/components/schemas/TeamEventGameScore" }
+    TeamEventGameScore:
+      type: object
+      required: [homeScore, awayScore]
+      properties:
+        homeScore: { type: integer, minimum: 0 }
+        awayScore: { type: integer, minimum: 0 }
+    TeamEventState:
+      type: object
+      required: [tournamentId, config, templates, rosters, rubbers, dreambreakers, standings]
+      properties:
+        tournamentId: { type: integer }
+        config:
+          type: ["object", "null"]
+          properties:
+            minMen: { type: integer }
+            minWomen: { type: integer }
+            dreambreakerEnabled: { type: boolean }
+        templates:
+          type: array
+          items: { $ref: "#/components/schemas/TeamEventTemplateInput" }
+        rosters:
+          type: object
+          additionalProperties:
+            type: array
+            items: { $ref: "#/components/schemas/TeamEventPlayer" }
+        rubbers:
+          type: array
+          items: { $ref: "#/components/schemas/TeamEventRubber" }
+        dreambreakers:
+          type: array
+          items: { $ref: "#/components/schemas/TeamEventDreambreaker" }
+        standings:
+          type: array
+          items: { $ref: "#/components/schemas/TeamEventStanding" }
+    TeamEventStanding:
+      allOf:
+        - $ref: "#/components/schemas/Standing"
+        - type: object
+          required: [scoreFor, scoreAgainst, rallyDifference]
+          properties:
+            scoreFor: { type: integer, minimum: 0 }
+            scoreAgainst: { type: integer, minimum: 0 }
+            rallyDifference: { type: integer }
+    TeamEventCrossoverInput:
+      type: object
+      required: [a1TeamId, a2TeamId, b1TeamId, b2TeamId]
+      properties:
+        a1TeamId: { type: integer }
+        a2TeamId: { type: integer }
+        b1TeamId: { type: integer }
+        b2TeamId: { type: integer }
+    TeamEventDreambreaker:
+      type: object
+      required: [id, knockoutMatchId, homePlayerIds, awayPlayerIds, played]
+      properties:
+        id: { type: integer }
+        knockoutMatchId: { type: integer }
+        firstTeamId: { type: [integer, "null"] }
+        homePlayerIds: { type: array, items: { type: integer } }
+        awayPlayerIds: { type: array, items: { type: integer } }
+        homeScore: { type: [integer, "null"] }
+        awayScore: { type: [integer, "null"] }
+        played: { type: boolean }
+    TeamEventDreambreakerLineupInput:
+      type: object
+      required: [teamId, playerIds]
+      properties:
+        teamId: { type: integer }
+        playerIds:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items: { type: integer }
+    TeamEventDreambreakerScoreInput:
+      type: object
+      required: [homeScore, awayScore]
+      properties:
+        homeScore: { type: integer, minimum: 0 }
+        awayScore: { type: integer, minimum: 0 }
